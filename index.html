@@ -1,0 +1,759 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Universal Video Player</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- HLS.js -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        accent: '#e50914',
+                        panel: '#181818'
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+
+<body class="bg-[#090909] text-white min-h-screen">
+
+<main class="max-w-6xl mx-auto px-3 sm:px-6 py-6">
+
+    <!-- Header -->
+    <header class="flex flex-wrap justify-between items-center gap-3 mb-6">
+
+        <div>
+            <h1 class="text-2xl font-bold">
+                <span class="text-red-600">Universal</span> Player
+            </h1>
+
+            <p class="text-gray-500 text-sm mt-1">
+                M3U8 & External Embed Player
+            </p>
+        </div>
+
+        <span id="playerStatus"
+              class="text-xs px-3 py-2 rounded-full bg-gray-800 text-gray-400">
+            Ready
+        </span>
+
+    </header>
+
+
+    <!-- Player -->
+    <section class="bg-panel rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+
+        <div id="playerContainer"
+             class="relative bg-black aspect-video">
+
+            <!-- Video element -->
+            <video
+                id="video"
+                class="hidden w-full h-full object-contain"
+                controls
+                playsinline
+                preload="metadata">
+            </video>
+
+            <!-- Iframe element -->
+            <iframe
+                id="iframePlayer"
+                class="hidden w-full h-full border-0"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
+                title="External Video Player">
+            </iframe>
+
+            <!-- Loading -->
+            <div id="loading"
+                 class="hidden absolute inset-0 bg-black/70 flex-col items-center justify-center">
+
+                <div class="w-10 h-10 rounded-full border-4 border-gray-600 border-t-red-600 animate-spin"></div>
+
+                <p class="mt-4 text-sm text-gray-300">
+                    Loading player...
+                </p>
+
+            </div>
+
+            <!-- Error -->
+            <div id="errorBox"
+                 class="hidden absolute inset-0 bg-black/90 flex-col items-center justify-center p-5 text-center">
+
+                <div class="text-4xl mb-3">⚠️</div>
+
+                <h2 class="font-bold text-lg">
+                    Unable to load player
+                </h2>
+
+                <p id="errorMessage"
+                   class="text-gray-400 text-sm mt-2 max-w-md">
+                </p>
+
+                <button id="retryButton"
+                        class="mt-5 bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg">
+                    Retry
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- Player controls -->
+        <div class="p-4 sm:p-5">
+
+            <div class="flex justify-between items-center gap-3 mb-4">
+
+                <div>
+                    <h2 id="sourceTitle" class="font-semibold">
+                        No source loaded
+                    </h2>
+
+                    <p id="sourceDescription"
+                       class="text-gray-500 text-xs mt-1">
+                        Select a streaming source
+                    </p>
+                </div>
+
+                <span id="sourceBadge"
+                      class="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full">
+                    Waiting
+                </span>
+
+            </div>
+
+
+            <!-- HLS controls -->
+            <div id="hlsControls"
+                 class="hidden grid grid-cols-2 gap-3 mb-4">
+
+                <div>
+                    <label class="text-xs text-gray-400 block mb-2">
+                        Quality
+                    </label>
+
+                    <select id="quality"
+                            class="w-full bg-[#292929] border border-white/10 rounded-lg p-3 text-sm">
+
+                        <option value="-1">Auto</option>
+
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-gray-400 block mb-2">
+                        Playback speed
+                    </label>
+
+                    <select id="speed"
+                            class="w-full bg-[#292929] border border-white/10 rounded-lg p-3 text-sm">
+
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="1.75">1.75x</option>
+                        <option value="2">2x</option>
+
+                    </select>
+                </div>
+
+            </div>
+
+
+            <!-- General buttons -->
+            <div class="flex flex-wrap gap-2">
+
+                <button id="muteButton"
+                        class="flex-1 min-w-[100px] bg-[#292929] hover:bg-[#383838] rounded-lg p-3 text-sm">
+                    🔊 Mute
+                </button>
+
+                <button id="pipButton"
+                        class="flex-1 min-w-[100px] bg-[#292929] hover:bg-[#383838] rounded-lg p-3 text-sm">
+                    ▣ PiP
+                </button>
+
+                <button id="fullscreenButton"
+                        class="flex-1 min-w-[100px] bg-[#292929] hover:bg-[#383838] rounded-lg p-3 text-sm">
+                    ⛶ Fullscreen
+                </button>
+
+                <button id="shareButton"
+                        class="flex-1 min-w-[100px] bg-[#292929] hover:bg-[#383838] rounded-lg p-3 text-sm">
+                    🔗 Share
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+   
+
+
+    <!-- Shortcuts -->
+    <section class="mt-5 bg-panel border border-white/10 rounded-xl p-4">
+
+        <h3 class="font-semibold text-sm mb-3">
+            Keyboard Shortcuts (M3U8)
+        </h3>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-gray-400">
+
+            <p><kbd class="bg-[#333] px-2 py-1 rounded">Space</kbd> Play / Pause</p>
+            <p><kbd class="bg-[#333] px-2 py-1 rounded">M</kbd> Mute</p>
+            <p><kbd class="bg-[#333] px-2 py-1 rounded">F</kbd> Fullscreen</p>
+            <p><kbd class="bg-[#333] px-2 py-1 rounded">← / →</kbd> Seek 10 sec</p>
+
+        </div>
+
+    </section>
+
+
+    <footer class="text-center text-xs text-gray-600 mt-6">
+        Universal Player · Powered by HLS.js
+    </footer>
+
+</main>
+
+
+<script>
+
+// Elements
+const video = document.getElementById('video');
+const iframe = document.getElementById('iframePlayer');
+
+const loading = document.getElementById('loading');
+const errorBox = document.getElementById('errorBox');
+const errorMessage = document.getElementById('errorMessage');
+
+const sourceInput = document.getElementById('sourceInput');
+const sourceType = document.getElementById('sourceType');
+
+const quality = document.getElementById('quality');
+
+const playerStatus = document.getElementById('playerStatus');
+const sourceTitle = document.getElementById('sourceTitle');
+const sourceDescription = document.getElementById('sourceDescription');
+const sourceBadge = document.getElementById('sourceBadge');
+
+const hlsControls = document.getElementById('hlsControls');
+
+let hls = null;
+let currentUrl = '';
+let currentType = '';
+
+
+// UI helpers
+function showLoading(value) {
+    loading.classList.toggle('hidden', !value);
+    loading.classList.toggle('flex', value);
+}
+
+function hideError() {
+    errorBox.classList.add('hidden');
+    errorBox.classList.remove('flex');
+}
+
+function showError(message) {
+    showLoading(false);
+
+    errorMessage.textContent = message;
+
+    errorBox.classList.remove('hidden');
+    errorBox.classList.add('flex');
+
+    playerStatus.textContent = 'Error';
+    sourceBadge.textContent = 'Failed';
+}
+
+function resetPlayer() {
+
+    if (hls) {
+        hls.destroy();
+        hls = null;
+    }
+
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+
+    iframe.src = 'about:blank';
+
+    video.classList.add('hidden');
+    iframe.classList.add('hidden');
+
+    hlsControls.classList.add('hidden');
+
+    hideError();
+    showLoading(false);
+
+}
+
+
+// URL validation
+function validUrl(value) {
+
+    try {
+        const url = new URL(value);
+
+        return ['http:', 'https:'].includes(url.protocol);
+
+    } catch {
+        return false;
+    }
+
+}
+
+
+// Source detection
+function detectType(url) {
+
+    if (url.toLowerCase().includes('.m3u8')) {
+        return 'hls';
+    }
+
+    return 'embed';
+
+}
+
+
+// Quality
+function updateQuality() {
+
+    quality.innerHTML = '<option value="-1">Auto Quality</option>';
+
+    if (!hls) return;
+
+    hls.levels.forEach((level, index) => {
+
+        const option = document.createElement('option');
+
+        option.value = index;
+
+        option.textContent = level.height
+            ? level.height + 'p'
+            : Math.round(level.bitrate / 1000) + ' kbps';
+
+        quality.appendChild(option);
+
+    });
+
+}
+
+
+// Load HLS
+function loadHLS(url) {
+
+    video.classList.remove('hidden');
+    hlsControls.classList.remove('hidden');
+
+    sourceTitle.textContent = 'HLS Stream';
+    sourceDescription.textContent = 'Direct M3U8 video source';
+    sourceBadge.textContent = 'M3U8';
+
+    if (Hls.isSupported()) {
+
+        hls = new Hls({
+            enableWorker: true,
+            capLevelToPlayerSize: true
+        });
+
+        hls.loadSource(url);
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+
+            updateQuality();
+
+            showLoading(false);
+
+            playerStatus.textContent = 'Connected';
+
+            video.play().catch(() => {
+                playerStatus.textContent = 'Ready - press play';
+            });
+
+        });
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+
+            if (!data.fatal) return;
+
+            console.error('HLS error:', data);
+
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+
+                hls.recoverMediaError();
+
+            } else {
+
+                showError(
+                    'HLS playback failed. Check the stream, CORS or network access.'
+                );
+
+            }
+
+        });
+
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+
+        video.src = url;
+
+        video.addEventListener('loadedmetadata', () => {
+
+            showLoading(false);
+            playerStatus.textContent = 'Connected';
+
+            video.play().catch(() => {
+                playerStatus.textContent = 'Ready - press play';
+            });
+
+        }, { once: true });
+
+        video.addEventListener('error', () => {
+            showError('Unable to load native HLS stream.');
+        }, { once: true });
+
+    } else {
+
+        showError('Your browser does not support HLS.');
+
+    }
+
+}
+
+
+// Load iframe
+function loadEmbed(url) {
+
+    iframe.classList.remove('hidden');
+
+    sourceTitle.textContent = 'External Embed';
+    sourceDescription.textContent = 'Third-party iframe video player';
+    sourceBadge.textContent = 'EMBED';
+
+    hlsControls.classList.add('hidden');
+
+    showLoading(true);
+
+    iframe.onload = () => {
+
+        showLoading(false);
+
+        playerStatus.textContent = 'Embed loaded';
+
+    };
+
+    iframe.onerror = () => {
+
+        showError('Unable to load external embed.');
+
+    };
+
+    iframe.src = url;
+
+    // Cross-origin iframe content cannot be inspected.
+    // Some providers block iframe embedding or refuse framing.
+    setTimeout(() => {
+
+        if (iframe.src !== 'about:blank') {
+            showLoading(false);
+        }
+
+    }, 10000);
+
+}
+
+
+// Main source loader
+function loadSource(url, selectedType = 'auto') {
+
+    if (!validUrl(url)) {
+
+        showError('Enter a valid HTTP or HTTPS URL.');
+
+        return;
+
+    }
+
+    resetPlayer();
+
+    currentUrl = url;
+
+    currentType = selectedType === 'auto'
+        ? detectType(url)
+        : selectedType;
+
+    showLoading(true);
+
+    playerStatus.textContent = 'Connecting';
+
+    if (currentType === 'hls') {
+
+        loadHLS(url);
+
+    } else if (currentType === 'embed') {
+
+        loadEmbed(url);
+
+    } else {
+
+        showError('Unsupported source type.');
+
+    }
+
+}
+
+
+// Form
+document.getElementById('sourceForm').addEventListener('submit', event => {
+
+    event.preventDefault();
+
+    const url = sourceInput.value.trim();
+
+    const type = sourceType.value;
+
+    loadSource(url, type);
+
+    if (validUrl(url)) {
+
+        const params = new URLSearchParams();
+
+        params.set('type', type);
+        params.set('src', url);
+
+        history.replaceState(
+            null,
+            '',
+            window.location.pathname + '?' + params.toString()
+        );
+
+    }
+
+});
+
+
+// Retry
+document.getElementById('retryButton').addEventListener('click', () => {
+
+    if (currentUrl) {
+        loadSource(currentUrl, currentType);
+    }
+
+});
+
+
+// Quality
+quality.addEventListener('change', () => {
+
+    if (hls) {
+        hls.currentLevel = Number(quality.value);
+    }
+
+});
+
+
+// Speed
+document.getElementById('speed').addEventListener('change', event => {
+
+    video.playbackRate = Number(event.target.value);
+
+});
+
+
+// Mute
+document.getElementById('muteButton').addEventListener('click', () => {
+
+    video.muted = !video.muted;
+
+    document.getElementById('muteButton').textContent =
+        video.muted ? '🔇 Unmute' : '🔊 Mute';
+
+});
+
+
+// Fullscreen
+document.getElementById('fullscreenButton').addEventListener('click', async () => {
+
+    try {
+
+        if (!document.fullscreenElement) {
+            await document.getElementById('playerContainer').requestFullscreen();
+        } else {
+            await document.exitFullscreen();
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+    }
+
+});
+
+
+// Picture in Picture (HLS only)
+document.getElementById('pipButton').addEventListener('click', async () => {
+
+    try {
+
+        if (!video.classList.contains('hidden') &&
+            document.pictureInPictureEnabled) {
+
+            if (document.pictureInPictureElement) {
+                await document.exitPictureInPicture();
+            } else {
+                await video.requestPictureInPicture();
+            }
+
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+    }
+
+});
+
+
+// Share
+document.getElementById('shareButton').addEventListener('click', async () => {
+
+    if (!currentUrl) {
+        playerStatus.textContent = 'Load a source first';
+        return;
+    }
+
+    const shareUrl = new URL(window.location.href);
+
+    shareUrl.searchParams.set('type', currentType);
+    shareUrl.searchParams.set('src', currentUrl);
+
+    try {
+
+        await navigator.clipboard.writeText(shareUrl.toString());
+
+        playerStatus.textContent = 'Link copied!';
+
+    } catch {
+
+        playerStatus.textContent = 'Clipboard access unavailable';
+
+    }
+
+});
+
+
+// Keyboard shortcuts for native video only
+document.addEventListener('keydown', event => {
+
+    if (
+        event.target.matches('input, select, textarea') ||
+        event.altKey || event.ctrlKey || event.metaKey ||
+        !iframe.classList.contains('hidden')
+    ) return;
+
+    switch (event.key.toLowerCase()) {
+
+        case ' ':
+
+            event.preventDefault();
+
+            if (video.paused) video.play();
+            else video.pause();
+
+            break;
+
+        case 'm':
+
+            video.muted = !video.muted;
+
+            document.getElementById('muteButton').textContent =
+                video.muted ? '🔇 Unmute' : '🔊 Mute';
+
+            break;
+
+        case 'f':
+
+            document.getElementById('fullscreenButton').click();
+
+            break;
+
+        case 'arrowleft':
+
+            video.currentTime = Math.max(0, video.currentTime - 10);
+
+            break;
+
+        case 'arrowright':
+
+            if (Number.isFinite(video.duration)) {
+                video.currentTime = Math.min(
+                    video.duration,
+                    video.currentTime + 10
+                );
+            }
+
+            break;
+
+    }
+
+});
+
+
+// Video loading events
+video.addEventListener('waiting', () => showLoading(true));
+
+video.addEventListener('playing', () => {
+
+    showLoading(false);
+
+    hideError();
+
+    playerStatus.textContent = 'Playing';
+
+});
+
+video.addEventListener('canplay', () => showLoading(false));
+
+
+// Read URL parameters
+const params = new URLSearchParams(window.location.search);
+
+const initialUrl = params.get('src');
+const initialType = params.get('type') || 'auto';
+
+if (initialUrl) {
+
+    sourceInput.value = initialUrl;
+    sourceType.value = initialType;
+
+    loadSource(initialUrl, initialType);
+
+}
+
+</script>
+
+</body>
+</html>
